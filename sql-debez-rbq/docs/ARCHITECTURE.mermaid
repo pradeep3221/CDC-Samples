@@ -1,0 +1,47 @@
+graph TB
+    subgraph DataSource["Data Source Layer"]
+        SQL[("SQL Server Database<br/>testdb")]
+        style SQL fill:#cc2927,stroke:#000,color:#fff
+    end
+
+    subgraph CDC["Change Capture Layer"]
+        CDCLOG["CDC Log<br/>sys.fn_cdc_get_all_changes_*"]
+        CDCTBL["Change Tables<br/>cdc.dbo_Customers_CT"]
+        DBZ["Debezium SQL Server Connector<br/>SQL Server CDC"]
+        style DBZ fill:#937dc2,stroke:#000,color:#fff
+        style SQL -.->|Change Notifications| CDCLOG
+        CDCLOG --> CDCTBL
+        CDCTBL --> DBZ
+    end
+
+    subgraph Streaming["Event Streaming Layer"]
+        ZK[("Zookeeper<br/>2181")]
+        KAFKA[("Kafka Broker<br/>9092")]
+        TOPICS["Topics:<br/>sqlserver.dbo.Customers<br/>dbhistory.mssql<br/>connect-*"]
+        style ZK fill:#6fa8dc,stroke:#000,color:#fff
+        style KAFKA fill:#ff9933,stroke:#000,color:#fff
+        style TOPICS fill:#ff9933,stroke:#000,color:#fff
+        DBZ -->|CDC Events| KAFKA
+        ZK -.->|Coordination| KAFKA
+        KAFKA --> TOPICS
+    end
+
+    subgraph Queue["Messaging Layer"]
+        RMQ[("RabbitMQ<br/>5672 / 15672")]
+        QUEUE["Queues:<br/>cdc.customers"]
+        style RMQ fill:#ff6600,stroke:#000,color:#fff
+        style QUEUE fill:#ff6600,stroke:#000,color:#fff
+        TOPICS -->|Bridge/Direct| RMQ
+        RMQ --> QUEUE
+    end
+
+    subgraph Consumer["Consumer Layer"]
+        APP["CDC Consumer App<br/>.NET 10<br/>RabbitMQ Client"]
+        LOG["Event Processing<br/>Logging<br/>Business Logic"]
+        style APP fill:#68217a,stroke:#000,color:#fff
+        style LOG fill:#68217a,stroke:#000,color:#fff
+        QUEUE --> APP
+        APP --> LOG
+    end
+
+    classDef default fill:#e1e4e8,stroke:#333,stroke-width:2px,color:#000

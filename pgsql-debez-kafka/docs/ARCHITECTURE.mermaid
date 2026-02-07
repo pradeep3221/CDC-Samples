@@ -1,0 +1,49 @@
+graph TB
+    subgraph DataSource["Data Source Layer"]
+        PG[("PostgreSQL Database<br/>testdb")]
+        style PG fill:#336791,stroke:#000,color:#fff
+    end
+
+    subgraph CDC["Change Capture Layer"]
+        WAL["Write-Ahead Log<br/>wal_level=logical"]
+        REPL["Replication Slot<br/>debezium_slot"]
+        PUB["Publication<br/>dbz_publication"]
+        DBZ["Debezium PostgreSQL Connector<br/>pgoutput plugin"]
+        style DBZ fill:#937dc2,stroke:#000,color:#fff
+        style PG -.->|Logical Changes| WAL
+        WAL --> REPL
+        REPL --> PUB
+        PUB --> DBZ
+    end
+
+    subgraph Streaming["Event Streaming Layer"]
+        ZK[("Zookeeper<br/>2181")]
+        KAFKA[("Kafka Broker<br/>9092")]
+        TOPICS["Topics:<br/>postgresql.public.customers<br/>dbhistory.postgres<br/>connect-*"]
+        style ZK fill:#6fa8dc,stroke:#000,color:#fff
+        style KAFKA fill:#ff9933,stroke:#000,color:#fff
+        style TOPICS fill:#ff9933,stroke:#000,color:#fff
+        DBZ -->|CDC Events| KAFKA
+        ZK -.->|Coordination| KAFKA
+        KAFKA --> TOPICS
+    end
+
+    subgraph Queue["Messaging Layer"]
+        RMQ[("RabbitMQ<br/>5672 / 15672")]
+        QUEUE["Queues:<br/>cdc.customers"]
+        style RMQ fill:#ff6600,stroke:#000,color:#fff
+        style QUEUE fill:#ff6600,stroke:#000,color:#fff
+        TOPICS -->|Bridge/Direct| RMQ
+        RMQ --> QUEUE
+    end
+
+    subgraph Consumer["Consumer Layer"]
+        APP["CDC Consumer App<br/>.NET 10<br/>RabbitMQ Client"]
+        LOG["Event Processing<br/>Logging<br/>Business Logic"]
+        style APP fill:#68217a,stroke:#000,color:#fff
+        style LOG fill:#68217a,stroke:#000,color:#fff
+        QUEUE --> APP
+        APP --> LOG
+    end
+
+    classDef default fill:#e1e4e8,stroke:#333,stroke-width:2px,color:#000

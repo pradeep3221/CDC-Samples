@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: debezium-config
+  namespace: cdc-system
+data:
+  connector-config.json: |
+    {
+      "name": "postgres-cdc-connector",
+      "config": {
+        "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+        "database.server.name": "postgres-server",
+        "database.hostname": "postgres-db.cdc-system.svc.cluster.local",
+        "database.port": "5432",
+        "database.user": "postgres",
+        "database.password": "postgres-password",
+        "database.dbname": "testdb",
+        "plugin.name": "pgoutput",
+        "publication.name": "dbz_publication",
+        "slot.name": "debezium_slot",
+        "database.history.kafka.bootstrap.servers": "kafka-broker.cdc-system.svc.cluster.local:9092",
+        "database.history.kafka.topic": "dbhistory.postgres",
+        "snapshot.mode": "initial",
+        "transforms": "route",
+        "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+        "transforms.route.regex": "([^.]+)\\.([^.]+)\\.([^.]+)",
+        "transforms.route.replacement": "cdc.$3",
+        "topic.prefix": "postgresql",
+        "table.include.list": "public\\..*"
+      }
+    }
