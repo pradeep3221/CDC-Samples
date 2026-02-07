@@ -1,9 +1,0 @@
-FROM debezium/connect:2.4
-
-# Install additional plugins if needed
-# RUN cd /kafka/connect && curl -o debezium-connector-sqlserver.jar ...
-
-USER root
-RUN apt-get update && apt-get install -y curl
-
-USER 1000
