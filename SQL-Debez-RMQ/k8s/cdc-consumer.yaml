@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cdc-consumer
+  namespace: cdc-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cdc-consumer
+  template:
+    metadata:
+      labels:
+        app: cdc-consumer
+    spec:
+      containers:
+      - name: consumer
+        image: cdc-consumer:latest
+        imagePullPolicy: Always
+        env:
+        - name: RabbitMq__HostName
+          value: "rabbitmq.cdc-system.svc.cluster.local"
+        - name: RabbitMq__UserName
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-credentials
+              key: RABBITMQ_DEFAULT_USER
+        - name: RabbitMq__Password
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-credentials
+              key: RABBITMQ_DEFAULT_PASS
+        - name: RabbitMq__QueueName
+          value: "cdc.customers"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
